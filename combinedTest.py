@@ -3,7 +3,7 @@
 # Wiring:
 #   TSL2591 -- hardware I2C bus 1: SDA GPIO2 (physical pin 3), SCL GPIO3 (pin 5)
 #   BMP280  -- software I2C: SDA GPIO17 (physical pin 11), SCL GPIO27 (pin 13)
-#   DHT22   -- single-wire data on GPIO14 (physical pin 8)
+#   DHT22   -- single-wire data on GPIO23 (physical pin 8)
 #
 # The two I2C sensors are on separate buses: hardware I2C for the TSL2591, and
 # bitbangio (software I2C) for the BMP280, so neither depends on the other's
@@ -16,17 +16,11 @@
 
 # Not reported as separate fields - each item below is either another name
 # for a number already printed above, or math for the backend:
-
 #   visible     = ch0 - ch1   (one subtraction)
-#   
 #   broadband   = ch0         (same number as ch0, already printed)
-#   
 #   IR          = ch1         (same number as ch1, already printed)
-#   
 #   altitude    -- needs a real sea-level reference
-#   
 #   bmp280 temp -- that is the chip die temperature, not air temperature
-#   
 #   dew point, dew point spread, cloud index, pressure trend -- math for these
 #   can be done on the backend / app
 
@@ -59,23 +53,23 @@
 #   - GND  -> Pin 9  (Ground)
 #   - SCL  -> Pin 13 (GPIO 27 - Software SCL)
 #   - SDA  -> Pin 11 (GPIO 17 - Software SDA)
-#   
-# DHT22 (Single-Wire Data) - 
-#   - VCC  (Pin 1) -> Pin 2  (5V Power / 3.3V depending on module)
-#   - GND  (Pin 2) -> Pin 14 (Ground)
-#   - DATA (Pin 4) -> Pin 8  (GPIO 14)
+# 
+# DHT22 (Single-Wire Data)
+#   - VCC  -> Pin 4  (5V Power)
+#   - GND  -> Pin 20 (Ground)
+#   - DATA -> Pin 8  (GPIO 23)
 
 import time
 from datetime import datetime, timezone
 
 import adafruit_bmp280
+import adafruit_bitbangio as bitbangio
 import adafruit_dht
 import adafruit_tsl2591
-import adafruit_bitbangio as bitbangio
 import board
 import busio
 
-DHT_PIN = board.D14
+DHT_PIN = board.D23
 BMP_SDA_PIN = board.D17  # Physical Pin 11
 BMP_SCL_PIN = board.D27  # Physical Pin 13
 BMP280_ADDRESS = 0x76
@@ -104,7 +98,7 @@ def init_sensors():
     i2c_sw = bitbangio.I2C(BMP_SCL_PIN, BMP_SDA_PIN)
     bmp = adafruit_bmp280.Adafruit_BMP280_I2C(i2c_sw, address=BMP280_ADDRESS)
 
-    # DHT22 on GPIO 14 (Physical Pin 8)
+    # DHT22 on GPIO 23 (Physical Pin 8)
     dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
 
     return i2c_hw, i2c_sw, tsl, bmp, dht
