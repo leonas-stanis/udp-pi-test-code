@@ -1,4 +1,3 @@
-
 # Combined sensor test for Raspberry Pi 5: TSL2591 + DHT22 + BMP280.
 
 # Wiring:
@@ -18,13 +17,13 @@
 # Not reported as separate fields - each item below is either another name
 # for a number already printed above, or math for the backend:
 
-#   visible    = ch0 - ch1   (one subtraction)
+#   visible     = ch0 - ch1   (one subtraction)
 #   
-#   broadband  = ch0         (same number as ch0, already printed)
+#   broadband   = ch0         (same number as ch0, already printed)
 #   
-#   IR         = ch1         (same number as ch1, already printed)
+#   IR          = ch1         (same number as ch1, already printed)
 #   
-#   altitude   -- needs a real sea-level reference
+#   altitude    -- needs a real sea-level reference
 #   
 #   bmp280 temp -- that is the chip die temperature, not air temperature
 #   
@@ -39,7 +38,7 @@
 #   init_sensors()  opens hardware I2C (TSL2591) and software I2C (BMP280) plus
 #                   the DHT22, returning i2c_hw, i2c_sw, tsl, bmp, dht
 #
-#   read_tsl2591()  -> {"lux", "ch0", "ch1"}       or None   (light)
+#   read_tsl2591()  -> {"lux", "ch0", "ch1"}      or None   (light)
 #   read_dht22()    -> {"temperature", "humidity"} or None   (air temp + humidity)
 #   read_bmp280()   -> {"pressure"}                or None   (barometer/air pressure)
 #
@@ -47,6 +46,24 @@
 # glitching sensor never takes down the other two. print_sample() then shows
 # n/a for the missing fields with some formatting functions.
 
+# SENSOR WIRING GUIDE (Raspberry Pi 5)
+#
+# TSL2591 (Hardware I2C Bus 1)
+#   - VIN  -> Pin 17 (3.3V Power)
+#   - GND  -> Pin 6  (Ground)
+#   - SCL  -> Pin 5  (GPIO 3 - Hardware SCL)
+#   - SDA  -> Pin 3  (GPIO 2 - Hardware SDA)
+#
+# BMP280 (Software I2C / Bitbangio)
+#   - VCC  -> Pin 1  (3.3V Power)
+#   - GND  -> Pin 9  (Ground)
+#   - SCL  -> Pin 13 (GPIO 27 - Software SCL)
+#   - SDA  -> Pin 11 (GPIO 17 - Software SDA)
+#   
+# DHT22 (Single-Wire Data) - 
+#   - VCC  (Pin 1) -> Pin 2  (5V Power / 3.3V depending on module)
+#   - GND  (Pin 2) -> Pin 14 (Ground)
+#   - DATA (Pin 4) -> Pin 8  (GPIO 14)
 
 import time
 from datetime import datetime, timezone
@@ -54,7 +71,7 @@ from datetime import datetime, timezone
 import adafruit_bmp280
 import adafruit_dht
 import adafruit_tsl2591
-import bitbangio
+import adafruit_bitbangio as bitbangio
 import board
 import busio
 
