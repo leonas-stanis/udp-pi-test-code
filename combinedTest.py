@@ -1,63 +1,9 @@
 # Combined sensor test for Raspberry Pi 5: TSL2591 + DHT22 + BMP280.
 
 # Wiring:
-#   TSL2591 -- hardware I2C bus 1: SDA GPIO2 (physical pin 3), SCL GPIO3 (pin 5)
-#   BMP280  -- software I2C: SDA GPIO17 (physical pin 11), SCL GPIO27 (pin 13)
-#   DHT22   -- single-wire data on GPIO23 (physical pin 8)
-#
-# The two I2C sensors are on separate buses: hardware I2C for the TSL2591, and
-# bitbangio (software I2C) for the BMP280, so neither depends on the other's
-# bus speed or pull-ups.
-
-# Reported stats -- raw values only, the backend will derive everything else:
-#   TSL2591 : lux, ch0 (all light: visible + IR counts), ch1 (infrared counts)
-#   DHT22   : temp_c, rh_pct(humidity)
-#   BMP280  : pressure_hpa (absolute station pressure)
-
-# Not reported as separate fields - each item below is either another name
-# for a number already printed above, or math for the backend:
-#   visible     = ch0 - ch1   (one subtraction)
-#   broadband   = ch0         (same number as ch0, already printed)
-#   IR          = ch1         (same number as ch1, already printed)
-#   altitude    -- needs a real sea-level reference
-#   bmp280 temp -- that is the chip die temperature, not air temperature
-#   dew point, dew point spread, cloud index, pressure trend -- math for these
-#   can be done on the backend / app
-
-# Air temperature comes from the DHT22 only. ch0/ch1 are kept for now because
-# they show whether lux is clipping because of too much brightness at the selected gain.
-
-# Outline
-#
-#   init_sensors()  opens hardware I2C (TSL2591) and software I2C (BMP280) plus
-#                   the DHT22, returning i2c_hw, i2c_sw, tsl, bmp, dht
-#
-#   read_tsl2591()  -> {"lux", "ch0", "ch1"}       or None   (light)
-#   read_dht22()    -> {"temperature", "humidity"} or None   (air temp + humidity)
-#   read_bmp280()   -> {"pressure"}                or None   (barometer/air pressure)
-#
-# Each read function returns None instead of raising issues, so one dead or
-# glitching sensor never takes down the other two. print_sample() then shows
-# n/a for the missing fields with some formatting functions.
-
-# SENSOR WIRING GUIDE (Raspberry Pi 5)
-#
-# TSL2591 (Hardware I2C Bus 1)
-#   - VIN  -> Pin 17 (3.3V Power)
-#   - GND  -> Pin 6  (Ground)
-#   - SCL  -> Pin 5  (GPIO 3 - Hardware SCL)
-#   - SDA  -> Pin 3  (GPIO 2 - Hardware SDA)
-#
-# BMP280 (Software I2C / Bitbangio)
-#   - VCC  -> Pin 1  (3.3V Power)
-#   - GND  -> Pin 9  (Ground)
-#   - SCL  -> Pin 13 (GPIO 27 - Software SCL)
-#   - SDA  -> Pin 11 (GPIO 17 - Software SDA)
-# 
-# DHT22 (Single-Wire Data) (Resistor connectected between VCC and Data)
-#   - VCC  -> Pin 4  (5V Power)
-#   - DATA -> Pin 7  (GPIO 4)
-#   - GND  -> Pin 14 (Ground)
+#   - TSL2591 -- hardware I2C bus 1: SDA GPIO2 (physical pin 3), SCL GPIO3 (pin 5)
+#   - BMP280  -- software I2C: SDA GPIO17 (physical pin 11), SCL GPIO27 (pin 13)
+#   - DHT22   -- single-wire data on GPIO4 (physical pin 7)
 
 import time
 from datetime import datetime, timezone
@@ -79,13 +25,6 @@ CELL_WIDTH = 24  # column width for the per-sensor printout
 TSL_GAIN = adafruit_tsl2591.GAIN_LOW
 TSL_INTEGRATION_TIME = adafruit_tsl2591.INTEGRATIONTIME_100MS
 
-_GAIN_MULTIPLIERS = {
-    adafruit_tsl2591.GAIN_LOW: 1,
-    adafruit_tsl2591.GAIN_MED: 25,
-    adafruit_tsl2591.GAIN_HIGH: 428,
-    adafruit_tsl2591.GAIN_MAX: 9876,
-}
-
 
 def init_sensors():
     # Bus 1: Hardware I2C for TSL2591 (Physical Pins 3 & 5)
@@ -98,7 +37,7 @@ def init_sensors():
     i2c_sw = bitbangio.I2C(BMP_SCL_PIN, BMP_SDA_PIN)
     bmp = adafruit_bmp280.Adafruit_BMP280_I2C(i2c_sw, address=BMP280_ADDRESS)
 
-    # DHT22 on GPIO 23 (Physical Pin 8)
+    # DHT22 on GPIO 4 (Physical Pin 7)
     dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
 
     return i2c_hw, i2c_sw, tsl, bmp, dht
@@ -125,8 +64,9 @@ def read_dht22(device):
             "temperature": device.temperature,
             "humidity": device.humidity,
         }
-    except RuntimeError as error:
-        print(f"DHT22 read error: {error.args[0]}")
+    except Exception as error:
+        # Catches RuntimeErrors and any hardware dropouts gracefully
+        print(f"DHT22 read error: {error}")
         return None
 
 
@@ -189,9 +129,24 @@ def main():
                 .replace("+00:00", "Z")
             )
 
-            light = read_tsl2591(tsl) or {}
-            air = read_dht22(dht) or {}
-            press = read_bmp280(bmp) or {}
+            # Safely query each sensor independently with try/except fallbacks
+            try:
+                light = read_tsl2591(tsl) or {}
+            except Exception as e:
+                print(f"TSL2591 unexpected failure: {e}")
+                light = {}
+
+            try:
+                air = read_dht22(dht) or {}
+            except Exception as e:
+                print(f"DHT22 unexpected failure: {e}")
+                air = {}
+
+            try:
+                press = read_bmp280(bmp) or {}
+            except Exception as e:
+                print(f"BMP280 unexpected failure: {e}")
+                press = {}
 
             print_sample(ts, seq, light, air, press)
 
