@@ -54,10 +54,10 @@
 #   - SCL  -> Pin 13 (GPIO 27 - Software SCL)
 #   - SDA  -> Pin 11 (GPIO 17 - Software SDA)
 # 
-# DHT22 (Single-Wire Data)
-#   - VCC  -> Pin 2  (5V Power)
+# DHT22 (Single-Wire Data) (Resistor connectected between VCC and Data)
+#   - VCC  -> Pin 4  (5V Power)
+#   - DATA -> Pin 7  (GPIO 4)
 #   - GND  -> Pin 14 (Ground)
-#   - DATA -> Pin 22  (GPIO 25)
 
 import time
 from datetime import datetime, timezone
