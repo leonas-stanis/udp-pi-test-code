@@ -89,17 +89,31 @@ _GAIN_MULTIPLIERS = {
 
 def init_sensors():
     # Bus 1: Hardware I2C for TSL2591 (Physical Pins 3 & 5)
-    i2c_hw = busio.I2C(board.SCL, board.SDA)
-    tsl = adafruit_tsl2591.TSL2591(i2c_hw)
-    tsl.gain = TSL_GAIN
-    tsl.integration_time = TSL_INTEGRATION_TIME
+    i2c_hw = None
+    tsl = None
+    try:
+        i2c_hw = busio.I2C(board.SCL, board.SDA)
+        tsl = adafruit_tsl2591.TSL2591(i2c_hw)
+        tsl.gain = TSL_GAIN
+        tsl.integration_time = TSL_INTEGRATION_TIME
+    except Exception as e:
+        print(f"TSL2591 init failed: {e}")
 
     # Bus 2: Software I2C for BMP280 (Physical Pins 11 & 13)
-    i2c_sw = bitbangio.I2C(BMP_SCL_PIN, BMP_SDA_PIN)
-    bmp = adafruit_bmp280.Adafruit_BMP280_I2C(i2c_sw, address=BMP280_ADDRESS)
+    i2c_sw = None
+    bmp = None
+    try:
+        i2c_sw = bitbangio.I2C(BMP_SCL_PIN, BMP_SDA_PIN)
+        bmp = adafruit_bmp280.Adafruit_BMP280_I2C(i2c_sw, address=BMP280_ADDRESS)
+    except Exception as e:
+        print(f"BMP280 init failed: {e}")
 
-    # DHT22 on GPIO 23 (Physical Pin 8)
-    dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
+    # DHT22 on GPIO 4 (Physical Pin 7)
+    dht = None
+    try:
+        dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
+    except Exception as e:
+        print(f"DHT22 init failed: {e}")
 
     return i2c_hw, i2c_sw, tsl, bmp, dht
 
@@ -125,8 +139,9 @@ def read_dht22(device):
             "temperature": device.temperature,
             "humidity": device.humidity,
         }
-    except RuntimeError as error:
-        print(f"DHT22 read error: {error.args[0]}")
+    except Exception as error:
+        # Catches RuntimeErrors and any hardware dropouts gracefully
+        print(f"DHT22 read error: {error}")
         return None
 
 
@@ -189,9 +204,24 @@ def main():
                 .replace("+00:00", "Z")
             )
 
-            light = read_tsl2591(tsl) or {}
-            air = read_dht22(dht) or {}
-            press = read_bmp280(bmp) or {}
+            # Safely query each sensor independently with try/except fallbacks
+            try:
+                light = read_tsl2591(tsl) or {}
+            except Exception as e:
+                print(f"TSL2591 unexpected failure: {e}")
+                light = {}
+
+            try:
+                air = read_dht22(dht) or {}
+            except Exception as e:
+                print(f"DHT22 unexpected failure: {e}")
+                air = {}
+
+            try:
+                press = read_bmp280(bmp) or {}
+            except Exception as e:
+                print(f"BMP280 unexpected failure: {e}")
+                press = {}
 
             print_sample(ts, seq, light, air, press)
 
@@ -199,9 +229,12 @@ def main():
     except KeyboardInterrupt:
         print("\nStopping.")
     finally:
-        dht.exit()
-        i2c_hw.deinit()
-        i2c_sw.deinit()
+        if dht is not None:
+            dht.exit()
+        if i2c_hw is not None:
+            i2c_hw.deinit()
+        if i2c_sw is not None:
+            i2c_sw.deinit()
 
 
 if __name__ == "__main__":
