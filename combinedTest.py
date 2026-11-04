@@ -55,9 +55,9 @@
 #   - SDA  -> Pin 11 (GPIO 17 - Software SDA)
 # 
 # DHT22 (Single-Wire Data)
-#   - VCC  -> Pin 4  (5V Power)
-#   - GND  -> Pin 20 (Ground)
-#   - DATA -> Pin 8  (GPIO 23)
+#   - VCC  -> Pin 2  (5V Power)
+#   - GND  -> Pin 14 (Ground)
+#   - DATA -> Pin 22  (GPIO 25)
 
 import time
 from datetime import datetime, timezone
@@ -69,7 +69,7 @@ import adafruit_tsl2591
 import board
 import busio
 
-DHT_PIN = board.D23
+DHT_PIN = board.D25
 BMP_SDA_PIN = board.D17  # Physical Pin 11
 BMP_SCL_PIN = board.D27  # Physical Pin 13
 BMP280_ADDRESS = 0x76
