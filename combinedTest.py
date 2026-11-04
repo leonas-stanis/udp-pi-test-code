@@ -32,7 +32,7 @@
 #   init_sensors()  opens hardware I2C (TSL2591) and software I2C (BMP280) plus
 #                   the DHT22, returning i2c_hw, i2c_sw, tsl, bmp, dht
 #
-#   read_tsl2591()  -> {"lux", "ch0", "ch1"}      or None   (light)
+#   read_tsl2591()  -> {"lux", "ch0", "ch1"}       or None   (light)
 #   read_dht22()    -> {"temperature", "humidity"} or None   (air temp + humidity)
 #   read_bmp280()   -> {"pressure"}                or None   (barometer/air pressure)
 #
