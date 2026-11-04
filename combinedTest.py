@@ -69,7 +69,7 @@ import adafruit_tsl2591
 import board
 import busio
 
-DHT_PIN = board.D25
+DHT_PIN = board.D4
 BMP_SDA_PIN = board.D17  # Physical Pin 11
 BMP_SCL_PIN = board.D27  # Physical Pin 13
 BMP280_ADDRESS = 0x76
